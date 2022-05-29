@@ -33,6 +33,10 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+        <meta-data
+            android:name="com.bartczak.todo.default_notification_channel_id"
+            android:value="@string/default_notification_channel_name" />
     </application>
+
 
 </manifest>

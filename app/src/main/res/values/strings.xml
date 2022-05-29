@@ -13,4 +13,5 @@
     <string name="notifications">Notifications</string>
     <string name="attachment">Attachment</string>
     <string name="search">Search</string>
+    <string name="default_notification_channel_name">todoChannel</string>
 </resources>

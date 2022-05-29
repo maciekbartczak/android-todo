@@ -1,6 +1,8 @@
 package com.bartczak.todo;
 
 import android.Manifest;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -17,14 +19,19 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.work.Data;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity implements TasksViewClickListener{
@@ -45,6 +52,13 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                 new String[]{
                         Manifest.permission.WRITE_EXTERNAL_STORAGE,
                         Manifest.permission.READ_EXTERNAL_STORAGE},1);
+
+        String channelName = getString(R.string.default_notification_channel_name);
+
+        NotificationChannel channel = new NotificationChannel(channelName, channelName,
+                NotificationManager.IMPORTANCE_DEFAULT);
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(channel);
 
         RecyclerView rv = findViewById(R.id.rv_todo);
         rv.setItemAnimator(new DefaultItemAnimator());
@@ -82,6 +96,9 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                     if (result.getResultCode() == RESULT_OK) {
                         Task newTask = (Task) result.getData().getSerializableExtra("task");
                         db.addTask(newTask);
+                        if (newTask.getNotificationEnabled()) {
+                            scheduleNotification(newTask);
+                        }
                         updateTasks(db.getAllTasks(sortAscending));
                         adapter.notifyDataSetChanged();
                     }
@@ -95,11 +112,34 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                 result -> {
                     if (result.getResultCode() == RESULT_OK) {
                         Task task = (Task) result.getData().getSerializableExtra("task");
+                        if (task.getNotificationEnabled()) {
+                            scheduleNotification(task);
+                        } else {
+                            cancelNotification(task);
+                        }
                         db.updateTask(task);
                         updateTasks(db.getAllTasks(sortAscending));
                         adapter.notifyDataSetChanged();
                     }
                 });
+    }
+
+    private void scheduleNotification(Task task) {
+        Duration delay = Duration.between(LocalDateTime.now(), LocalDateTime.now().plusSeconds(10));
+
+        OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(OneTimeScheduleWorker.class)
+                .setInitialDelay(delay.toMillis(), TimeUnit.MILLISECONDS)
+                .setInputData(new Data.Builder()
+                        .putString("task_title", task.getTitle())
+                        .putString("task_description", task.getDescription())
+                        .build())
+                .addTag(String.valueOf(task.getId()))
+                .build();
+        WorkManager.getInstance(this).enqueue(workRequest);
+    }
+
+    private void cancelNotification(Task task) {
+        WorkManager.getInstance(this).cancelAllWorkByTag(String.valueOf(task.getId()));
     }
 
     private void searchTasks(EditText searchInput) {
@@ -137,6 +177,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                     file.delete();
                 }
                 db.deleteTask(tasks.get(position).getId());
+                cancelNotification(tasks.get(position));
                 tasks.remove(position);
                 adapter.notifyItemRemoved(position);
                 break;
