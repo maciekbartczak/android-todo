@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import androidx.annotation.NonNull;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +56,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    void addTask(final Task task) {
+    public void addTask(final Task task) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -73,28 +75,37 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.close();
     }
 
-    List<Task> getAllTasks() {
+    public List<Task> getAllTasks(boolean sortAscending) {
         List<Task> tasks = new ArrayList<>();
-        final String SELECT_QUERY = "SELECT * FROM " + TABLE_TASKS;
+        final String SELECT_QUERY = "SELECT * FROM " + TABLE_TASKS
+                + " ORDER BY " + KEY_DUE_DATE + " " + (sortAscending ? "ASC" : "DESC");
 
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.rawQuery(SELECT_QUERY, null);
 
         if (cursor.moveToFirst()) {
             do {
-                Task task = new Task();
-                task.setId(cursor.getInt(0));
-                task.setTitle(cursor.getString(1));
-                task.setDescription(cursor.getString(2));
-                task.setAttachmentPath(cursor.getString(3));
-                task.setCreatedAt(LocalDateTime.parse(cursor.getString(4)));
-                task.setDueDate(LocalDateTime.parse(cursor.getString(5)));
-                if (cursor.getString(6) != null) {
-                    task.setDoneAt(LocalDateTime.parse(cursor.getString(6)));
-                }
-                task.setDone(cursor.getInt(7) == 1);
-                task.setNotificationEnabled(cursor.getInt(8) == 1);
-                tasks.add(task);
+                tasks.add( createTaskFromCursor(cursor));
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+
+        return tasks;
+    }
+
+    public List<Task> getTasksByTitle(String query, boolean sortAscending) {
+        List<Task> tasks = new ArrayList<>();
+        final String SELECT_QUERY = "SELECT * FROM " + TABLE_TASKS + " WHERE " + KEY_TITLE + " LIKE '%" + query + "%'"
+                + " ORDER BY " + KEY_DUE_DATE + " " + (sortAscending ? "ASC" : "DESC");
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery(SELECT_QUERY, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                tasks.add(createTaskFromCursor(cursor));
             } while (cursor.moveToNext());
         }
 
@@ -108,5 +119,40 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_TASKS, KEY_ID + " = ?", new String[] { String.valueOf(id) });
         db.close();
+    }
+
+    public void updateTask(final Task task) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(KEY_TITLE, task.getTitle());
+        values.put(KEY_DESCRIPTION, task.getDescription());
+        values.put(KEY_ATTACHMENT, task.getAttachmentPath());
+        values.put(KEY_CREATED_AT, task.getCreatedAt().toString());
+        values.put(KEY_DUE_DATE, task.getDueDate().toString());
+        if (task.getDoneAt() != null) {
+            values.put(KEY_DONE_AT, task.getDoneAt().toString());
+        }
+        values.put(KEY_DONE, task.isDone());
+        values.put(KEY_NOTIFICATION_ENABLED, task.getNotificationEnabled());
+
+        db.update(TABLE_TASKS, values, KEY_ID + " = ?", new String[] { String.valueOf(task.getId()) });
+        db.close();
+    }
+
+    private Task createTaskFromCursor(Cursor cursor) {
+        Task task = new Task();
+        task.setId(cursor.getInt(0));
+        task.setTitle(cursor.getString(1));
+        task.setDescription(cursor.getString(2));
+        task.setAttachmentPath(cursor.getString(3));
+        task.setCreatedAt(LocalDateTime.parse(cursor.getString(4)));
+        task.setDueDate(LocalDateTime.parse(cursor.getString(5)));
+        if (cursor.getString(6) != null) {
+            task.setDoneAt(LocalDateTime.parse(cursor.getString(6)));
+        }
+        task.setDone(cursor.getInt(7) == 1);
+        task.setNotificationEnabled(cursor.getInt(8) == 1);
+        return task;
     }
 }

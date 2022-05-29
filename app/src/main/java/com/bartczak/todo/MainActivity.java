@@ -5,6 +5,9 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
@@ -22,13 +25,15 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity implements TasksViewClickListener{
 
     private List<Task> tasks;
-    private RecyclerView.Adapter adapter;
+    private TasksAdapter adapter;
     private ActivityResultLauncher<Intent> addTaskLauncher;
     private DatabaseHandler db = new DatabaseHandler(this);
+    private boolean sortAscending = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,33 +45,43 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                         Manifest.permission.WRITE_EXTERNAL_STORAGE,
                         Manifest.permission.READ_EXTERNAL_STORAGE},1);
 
-        Task task = new Task();
-        task.setTitle("Zadanie 1");
-        task.setDescription("Opis zadania 1, moze byc dosc dlugi, zobaczymy czy sie zmiesci. Otuz miesci sie no i gituwa");
-        task.setCreatedAt(LocalDateTime.now());
-        task.setDueDate(LocalDateTime.now().plusDays(1));
-        task.setDone(false);
-
         RecyclerView rv = findViewById(R.id.rv_todo);
         rv.setItemAnimator(new DefaultItemAnimator());
 
         LinearLayoutManager lm = new LinearLayoutManager(this);
         rv.setLayoutManager(lm);
 
-        tasks = db.getAllTasks();
+        tasks = db.getAllTasks(sortAscending);
 
         adapter = new TasksAdapter(tasks, this);
         rv.setAdapter(adapter);
 
         FloatingActionButton addTask = findViewById(R.id.button_add);
+        EditText searchInput = findViewById(R.id.search_input);
+        Button searchButton = findViewById(R.id.button_search);
+        ImageButton sortButton = findViewById(R.id.button_sort);
+
+        sortButton.setOnClickListener(v -> {
+            sortAscending = !sortAscending;
+            sortButton.setImageResource(sortAscending ? android.R.drawable.arrow_down_float : android.R.drawable.arrow_up_float);
+            if (searchInput.getText().toString().isEmpty()) {
+                updateTasks(db.getAllTasks(sortAscending));
+                adapter.notifyDataSetChanged();
+            } else {
+                searchTasks(searchInput);
+            }
+        });
+
+        searchButton.setOnClickListener(v -> {
+            searchTasks(searchInput);
+        });
 
         addTaskLauncher = registerForActivityResult(new StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK) {
                         Task newTask = (Task) result.getData().getSerializableExtra("task");
                         db.addTask(newTask);
-                        tasks.clear();
-                        tasks.addAll(db.getAllTasks());
+                        updateTasks(db.getAllTasks(sortAscending));
                         adapter.notifyDataSetChanged();
                     }
                 });
@@ -74,6 +89,22 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
             Intent intent = new Intent(this, NewTaskActivity.class);
             addTaskLauncher.launch(intent);
         });
+    }
+
+    private void searchTasks(EditText searchInput) {
+        String query = searchInput.getText().toString();
+        if (query.equals("")) {
+            updateTasks(db.getAllTasks(sortAscending));
+            adapter.notifyDataSetChanged();
+        } else {
+            updateTasks(db.getTasksByTitle(query, sortAscending));
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+    private void updateTasks(List<Task> tempTasks) {
+        tasks.clear();
+        tasks.addAll(tempTasks);
     }
 
     @Override
@@ -87,8 +118,13 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                     tasks.get(position).setDone(true);
                     tasks.get(position).setDoneAt(LocalDateTime.now());
                 }
+                db.updateTask(tasks.get(position));
                 break;
             case R.id.delete_button:
+                if (tasks.get(position).getAttachmentPath() != null) {
+                    File file = new File(tasks.get(position).getAttachmentPath());
+                    file.delete();
+                }
                 db.deleteTask(tasks.get(position).getId());
                 tasks.remove(position);
                 adapter.notifyItemRemoved(position);
