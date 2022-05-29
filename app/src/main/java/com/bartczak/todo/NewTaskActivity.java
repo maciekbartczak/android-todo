@@ -94,6 +94,12 @@ public class NewTaskActivity extends AppCompatActivity {
             attachment.setText(savedTask.getAttachmentPath());
             done.setChecked(savedTask.isDone());
             notify.setChecked(savedTask.getNotificationEnabled());
+
+            calendar.set(Calendar.YEAR, localDueDate.getYear());
+            calendar.set(Calendar.MONTH, localDueDate.getMonthValue() - 1);
+            calendar.set(Calendar.DAY_OF_MONTH, localDueDate.getDayOfMonth());
+            calendar.set(Calendar.HOUR_OF_DAY, localDueDate.getHour());
+            calendar.set(Calendar.MINUTE, localDueDate.getMinute());
         }
 
         filePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
@@ -132,6 +138,7 @@ public class NewTaskActivity extends AppCompatActivity {
             if (savedTask != null) {
                 savedTask.setTitle(title.getText().toString());
                 savedTask.setDescription(description.getText().toString());
+
                 savedTask.setDueDate(getLocalDateTime(calendar));
                 savedTask.setDone(done.isChecked());
                 savedTask.setNotificationEnabled(notify.isChecked());
