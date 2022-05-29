@@ -15,7 +15,7 @@ public class TasksAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     private final List<Task> tasks;
     private final TasksViewClickListener tasksViewClickListener;
-    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
 
     public TasksAdapter(List<Task> tasks, TasksViewClickListener tasksViewClickListener) {
         this.tasks = tasks;
