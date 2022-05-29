@@ -11,6 +11,7 @@ import android.provider.MediaStore;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageButton;
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
@@ -29,6 +30,7 @@ import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.UUID;
 
 public class NewTaskActivity extends AppCompatActivity {
 
@@ -48,6 +50,7 @@ public class NewTaskActivity extends AppCompatActivity {
         CheckBox done = findViewById(R.id.new_task_done);
         CheckBox notify = findViewById(R.id.new_task_notify);
         Button save = findViewById(R.id.save_button);
+        ImageButton deleteAttachment = findViewById(R.id.delete_attachment_button);
 
 
 
@@ -80,11 +83,23 @@ public class NewTaskActivity extends AppCompatActivity {
             timePickerDialog.show();
         });
 
+        Intent incomingIntent = getIntent();
+        Task savedTask = (Task) incomingIntent.getSerializableExtra("task");
+        if (savedTask != null) {
+            title.setText(savedTask.getTitle());
+            description.setText(savedTask.getDescription());
+            LocalDateTime localDueDate = savedTask.getDueDate();
+            dueDate.setText(localDueDate.toString().substring(0, 10));
+            dueTime.setText(localDueDate.toString().substring(11, 16));
+            attachment.setText(savedTask.getAttachmentPath());
+            done.setChecked(savedTask.isDone());
+            notify.setChecked(savedTask.getNotificationEnabled());
+        }
 
         filePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK) {
-                        saveAttachment(result, attachment);
+                        saveAttachment(result, attachment, savedTask);
                     }
                 });
 
@@ -95,40 +110,78 @@ public class NewTaskActivity extends AppCompatActivity {
             filePickerLauncher.launch(chooseFile);
         });
 
+        deleteAttachment.setOnClickListener(v -> {
+            if (savedTask != null && savedTask.getAttachmentPath() != null) {
+                File file = new File(savedTask.getAttachmentPath());
+                file.delete();
+                savedTask.setAttachmentPath(null);
+            } else {
+                File dir = new File(getExternalFilesDir("attachments").getAbsolutePath());
+                File file = new File(dir, attachment.getText().toString());
+                file.delete();
+            }
+            attachment.setText("");
+            attachmentPath = null;
+        });
 
         save.setOnClickListener(view -> {
             if (!validateFields(title, description, dueDate, dueTime)) {
                 return;
             }
 
-            Task task = new Task();
-            task.setTitle(title.getText().toString());
-            task.setDescription(description.getText().toString());
-            task.setCreatedAt(LocalDateTime.now());
-            task.setDueDate(getLocalDateTime(calendar));
-            task.setDone(done.isChecked());
-            if (attachmentPath != null) {
-                task.setAttachmentPath(attachmentPath.toString());
-            }
-            if (done.isChecked()) {
-                task.setDoneAt(LocalDateTime.now());
-            }
-            task.setNotificationEnabled(notify.isChecked());
+            if (savedTask != null) {
+                savedTask.setTitle(title.getText().toString());
+                savedTask.setDescription(description.getText().toString());
+                savedTask.setDueDate(getLocalDateTime(calendar));
+                savedTask.setDone(done.isChecked());
+                savedTask.setNotificationEnabled(notify.isChecked());
+                if (attachmentPath != null) {
+                    savedTask.setAttachmentPath(attachmentPath.toString());
+                }
+                if (done.isChecked()) {
+                    savedTask.setDoneAt(LocalDateTime.now());
+                }
 
-            Intent intent = new Intent();
-            intent.putExtra("task", task);
-            setResult(RESULT_OK, intent);
+                Intent intent = new Intent();
+                intent.putExtra("task", savedTask);
+                setResult(RESULT_OK, intent);
+            } else {
+                Task task = new Task();
+                task.setTitle(title.getText().toString());
+                task.setDescription(description.getText().toString());
+                task.setCreatedAt(LocalDateTime.now());
+                task.setDueDate(getLocalDateTime(calendar));
+                task.setDone(done.isChecked());
+                if (attachmentPath != null) {
+                    task.setAttachmentPath(attachmentPath.toString());
+                }
+                if (done.isChecked()) {
+                    task.setDoneAt(LocalDateTime.now());
+                }
+                task.setNotificationEnabled(notify.isChecked());
+
+                Intent intent = new Intent();
+                intent.putExtra("task", task);
+                setResult(RESULT_OK, intent);
+            }
             finish();
         });
 
-
-
     }
 
-    private void saveAttachment(ActivityResult result, EditText attachmentText) {
+    private void saveAttachment(ActivityResult result, EditText attachmentText, Task savedTask) {
+        if (savedTask != null && savedTask.getAttachmentPath() != null) {
+            File dir = new File(getExternalFilesDir("attachments").getAbsolutePath());
+            File file = new File(dir, savedTask.getAttachmentPath());
+            if (file.exists()) {
+                file.delete();
+            }
+        }
+
         Uri uri = Uri.parse(result.getData().getDataString());
 
         String filename = getFileName(uri);
+        filename = generateUniqueFilename(filename);
         attachmentText.setText(filename);
 
         File dir = new File(getExternalFilesDir("attachments").getAbsolutePath());
@@ -142,6 +195,11 @@ public class NewTaskActivity extends AppCompatActivity {
         }
 
         attachmentPath = destination.toPath();
+    }
+
+    private String generateUniqueFilename(String filename) {
+        String extension = filename.substring(filename.lastIndexOf("."));
+        return UUID.randomUUID() + extension;
     }
 
     private String getFileName(Uri uri) {

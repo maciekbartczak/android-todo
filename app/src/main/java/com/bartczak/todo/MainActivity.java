@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
     private List<Task> tasks;
     private TasksAdapter adapter;
     private ActivityResultLauncher<Intent> addTaskLauncher;
+    private ActivityResultLauncher<Intent> editTaskLauncher;
     private DatabaseHandler db = new DatabaseHandler(this);
     private boolean sortAscending = true;
 
@@ -89,6 +90,16 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
             Intent intent = new Intent(this, NewTaskActivity.class);
             addTaskLauncher.launch(intent);
         });
+
+        editTaskLauncher = registerForActivityResult(new StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Task task = (Task) result.getData().getSerializableExtra("task");
+                        db.updateTask(task);
+                        updateTasks(db.getAllTasks(sortAscending));
+                        adapter.notifyDataSetChanged();
+                    }
+                });
     }
 
     private void searchTasks(EditText searchInput) {
@@ -128,6 +139,11 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                 db.deleteTask(tasks.get(position).getId());
                 tasks.remove(position);
                 adapter.notifyItemRemoved(position);
+                break;
+            case R.id.edit_button:
+                Intent intent = new Intent(this, NewTaskActivity.class);
+                intent.putExtra("task", tasks.get(position));
+                editTaskLauncher.launch(intent);
                 break;
             case R.id.attachment_button:
                 openAttachment(position);
