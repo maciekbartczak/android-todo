@@ -1,7 +1,6 @@
 package com.bartczak.todo;
 
 import java.io.Serializable;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 
 public class Task implements Serializable {
@@ -15,6 +14,7 @@ public class Task implements Serializable {
     private LocalDateTime doneAt;
     private Boolean done;
     private Boolean notificationEnabled;
+    private Boolean notificationScheduled;
 
     public int getId() {
         return id;
@@ -72,7 +72,7 @@ public class Task implements Serializable {
         this.done = done;
     }
 
-    public Boolean getNotificationEnabled() {
+    public Boolean isNotificationEnabled() {
         return notificationEnabled;
     }
 
@@ -86,5 +86,13 @@ public class Task implements Serializable {
 
     public void setDueDate(LocalDateTime dueDate) {
         this.dueDate = dueDate;
+    }
+
+    public Boolean isNotificationScheduled() {
+        return notificationScheduled;
+    }
+
+    public void setNotificationScheduled(Boolean notificationScheduled) {
+        this.notificationScheduled = notificationScheduled;
     }
 }

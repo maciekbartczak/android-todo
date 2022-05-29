@@ -28,11 +28,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.io.File;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity implements TasksViewClickListener{
 
@@ -95,10 +92,12 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                 result -> {
                     if (result.getResultCode() == RESULT_OK) {
                         Task newTask = (Task) result.getData().getSerializableExtra("task");
-                        db.addTask(newTask);
-                        if (newTask.getNotificationEnabled()) {
+                        if (newTask.isNotificationEnabled()) {
                             scheduleNotification(newTask);
+                        } else {
+                            newTask.setNotificationScheduled(false);
                         }
+                        db.addTask(newTask);
                         updateTasks(db.getAllTasks(sortAscending));
                         adapter.notifyDataSetChanged();
                     }
@@ -112,9 +111,10 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                 result -> {
                     if (result.getResultCode() == RESULT_OK) {
                         Task task = (Task) result.getData().getSerializableExtra("task");
-                        if (task.getNotificationEnabled()) {
+                        if (task.isNotificationEnabled() && !task.isNotificationScheduled()) {
                             scheduleNotification(task);
-                        } else {
+                        }
+                        if (!task.isNotificationEnabled() && task.isNotificationScheduled()) {
                             cancelNotification(task);
                         }
                         db.updateTask(task);
@@ -136,10 +136,12 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                 .addTag(String.valueOf(task.getId()))
                 .build();
         WorkManager.getInstance(this).enqueue(workRequest);
+        task.setNotificationScheduled(true);
     }
 
     private void cancelNotification(Task task) {
         WorkManager.getInstance(this).cancelAllWorkByTag(String.valueOf(task.getId()));
+        task.setNotificationScheduled(false);
     }
 
     private void searchTasks(EditText searchInput) {
@@ -165,9 +167,11 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                 if (tasks.get(position).isDone()) {
                     tasks.get(position).setDone(false);
                     tasks.get(position).setDoneAt(null);
+                    scheduleNotification(tasks.get(position));
                 } else {
                     tasks.get(position).setDone(true);
                     tasks.get(position).setDoneAt(LocalDateTime.now());
+                    cancelNotification(tasks.get(position));
                 }
                 db.updateTask(tasks.get(position));
                 break;

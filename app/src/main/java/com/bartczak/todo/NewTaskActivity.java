@@ -93,7 +93,7 @@ public class NewTaskActivity extends AppCompatActivity {
             dueTime.setText(localDueDate.toString().substring(11, 16));
             attachment.setText(savedTask.getAttachmentPath());
             done.setChecked(savedTask.isDone());
-            notify.setChecked(savedTask.getNotificationEnabled());
+            notify.setChecked(savedTask.isNotificationEnabled());
 
             calendar.set(Calendar.YEAR, localDueDate.getYear());
             calendar.set(Calendar.MONTH, localDueDate.getMonthValue() - 1);

@@ -6,15 +6,13 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import androidx.annotation.NonNull;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DatabaseHandler extends SQLiteOpenHelper {
 
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     private static final String DATABASE_NAME = "todo";
 
@@ -29,6 +27,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private static final String KEY_DONE_AT = "done_at";
     private static final String KEY_DONE = "done";
     private static final String KEY_NOTIFICATION_ENABLED = "notification_enabled";
+    private static final String KEY_NOTIFICATION_SCHEDULED = "notification_scheduled";
 
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -45,15 +44,18 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + KEY_DUE_DATE + " TEXT,"
                 + KEY_DONE_AT + " TEXT,"
                 + KEY_DONE + " BOOL,"
-                + KEY_NOTIFICATION_ENABLED + " BOOL"
+                + KEY_NOTIFICATION_ENABLED + " BOOL,"
+                + KEY_NOTIFICATION_SCHEDULED + " BOOL"
                 + ")";
         db.execSQL(CREATE_TASKS_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int i, int i1) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_TASKS);
-        onCreate(db);
+        if (i1 > i) {
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_TASKS);
+            onCreate(db);
+        }
     }
 
     public void addTask(final Task task) {
@@ -69,7 +71,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(KEY_DONE_AT, task.getDoneAt().toString());
         }
         values.put(KEY_DONE, task.isDone());
-        values.put(KEY_NOTIFICATION_ENABLED, task.getNotificationEnabled());
+        values.put(KEY_NOTIFICATION_ENABLED, task.isNotificationEnabled());
+        values.put(KEY_NOTIFICATION_SCHEDULED, task.isNotificationScheduled());
 
         db.insert(TABLE_TASKS, null, values);
         db.close();
@@ -85,7 +88,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
         if (cursor.moveToFirst()) {
             do {
-                tasks.add( createTaskFromCursor(cursor));
+                tasks.add(createTaskFromCursor(cursor));
             } while (cursor.moveToNext());
         }
 
@@ -134,7 +137,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(KEY_DONE_AT, task.getDoneAt().toString());
         }
         values.put(KEY_DONE, task.isDone());
-        values.put(KEY_NOTIFICATION_ENABLED, task.getNotificationEnabled());
+        values.put(KEY_NOTIFICATION_ENABLED, task.isNotificationEnabled());
+        values.put(KEY_NOTIFICATION_SCHEDULED, task.isNotificationScheduled());
 
         db.update(TABLE_TASKS, values, KEY_ID + " = ?", new String[] { String.valueOf(task.getId()) });
         db.close();
@@ -153,6 +157,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
         task.setDone(cursor.getInt(7) == 1);
         task.setNotificationEnabled(cursor.getInt(8) == 1);
+        task.setNotificationScheduled(cursor.getInt(9) == 1);
         return task;
     }
 }
