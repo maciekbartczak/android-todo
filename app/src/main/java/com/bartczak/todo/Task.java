@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 public class Task implements Serializable {
 
+    private int id;
     private String title;
     private String description;
     private String attachmentPath;
@@ -14,6 +15,14 @@ public class Task implements Serializable {
     private LocalDateTime doneAt;
     private Boolean done;
     private Boolean notificationEnabled;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 
     public String getTitle() {
         return title;

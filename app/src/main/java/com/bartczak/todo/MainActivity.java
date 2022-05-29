@@ -21,12 +21,14 @@ import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements TasksViewClickListener{
 
-    private ArrayList<Task> tasks;
+    private List<Task> tasks;
     private RecyclerView.Adapter adapter;
     private ActivityResultLauncher<Intent> addTaskLauncher;
+    private DatabaseHandler db = new DatabaseHandler(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,14 +47,13 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
         task.setDueDate(LocalDateTime.now().plusDays(1));
         task.setDone(false);
 
-        tasks = new ArrayList<>();
-        tasks.add(task);
-
         RecyclerView rv = findViewById(R.id.rv_todo);
         rv.setItemAnimator(new DefaultItemAnimator());
 
         LinearLayoutManager lm = new LinearLayoutManager(this);
         rv.setLayoutManager(lm);
+
+        tasks = db.getAllTasks();
 
         adapter = new TasksAdapter(tasks, this);
         rv.setAdapter(adapter);
@@ -62,8 +63,10 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
         addTaskLauncher = registerForActivityResult(new StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK) {
-                        Task task1 = (Task) result.getData().getSerializableExtra("task");
-                        tasks.add(task1);
+                        Task newTask = (Task) result.getData().getSerializableExtra("task");
+                        db.addTask(newTask);
+                        tasks.clear();
+                        tasks.addAll(db.getAllTasks());
                         adapter.notifyDataSetChanged();
                     }
                 });
@@ -86,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                 }
                 break;
             case R.id.delete_button:
+                db.deleteTask(tasks.get(position).getId());
                 tasks.remove(position);
                 adapter.notifyItemRemoved(position);
                 break;

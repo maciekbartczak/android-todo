@@ -9,14 +9,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.List;
 
 public class TasksAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private final ArrayList<Task> tasks;
+    private final List<Task> tasks;
     private final TasksViewClickListener tasksViewClickListener;
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
 
-    public TasksAdapter(ArrayList<Task> tasks, TasksViewClickListener tasksViewClickListener) {
+    public TasksAdapter(List<Task> tasks, TasksViewClickListener tasksViewClickListener) {
         this.tasks = tasks;
         this.tasksViewClickListener = tasksViewClickListener;
     }

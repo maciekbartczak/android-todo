@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -19,12 +18,10 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -110,7 +107,9 @@ public class NewTaskActivity extends AppCompatActivity {
             task.setCreatedAt(LocalDateTime.now());
             task.setDueDate(getLocalDateTime(calendar));
             task.setDone(done.isChecked());
-            task.setAttachmentPath(attachmentPath.toString());
+            if (attachmentPath != null) {
+                task.setAttachmentPath(attachmentPath.toString());
+            }
             if (done.isChecked()) {
                 task.setDoneAt(LocalDateTime.now());
             }
@@ -129,19 +128,7 @@ public class NewTaskActivity extends AppCompatActivity {
     private void saveAttachment(ActivityResult result, EditText attachmentText) {
         Uri uri = Uri.parse(result.getData().getDataString());
 
-        String filename = "";
-        String[] projection = {MediaStore.MediaColumns.DISPLAY_NAME};
-        ContentResolver cr = getContentResolver();
-        Cursor metaCursor = cr.query(uri, projection, null, null, null);
-        if (metaCursor != null) {
-            try {
-                if (metaCursor.moveToFirst()) {
-                    filename = metaCursor.getString(0);
-                }
-            } finally {
-                metaCursor.close();
-            }
-        }
+        String filename = getFileName(uri);
         attachmentText.setText(filename);
 
         File dir = new File(getExternalFilesDir("attachments").getAbsolutePath());
@@ -155,6 +142,22 @@ public class NewTaskActivity extends AppCompatActivity {
         }
 
         attachmentPath = destination.toPath();
+    }
+
+    private String getFileName(Uri uri) {
+        String[] projection = {MediaStore.MediaColumns.DISPLAY_NAME};
+        ContentResolver cr = getContentResolver();
+        Cursor metaCursor = cr.query(uri, projection, null, null, null);
+        if (metaCursor != null) {
+            try {
+                if (metaCursor.moveToFirst()) {
+                    return metaCursor.getString(0);
+                }
+            } finally {
+                metaCursor.close();
+            }
+        }
+        throw new IllegalStateException("Could not get file name");
     }
 
     private boolean validateFields(EditText title, EditText description, EditText dueDate, EditText dueTime) {
