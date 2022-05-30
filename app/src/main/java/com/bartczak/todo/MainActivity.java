@@ -28,17 +28,21 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.io.File;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity implements TasksViewClickListener{
 
-    private List<Task> tasks;
+    private List<Task> tasks = new ArrayList<>();
     private TasksAdapter adapter;
     private ActivityResultLauncher<Intent> addTaskLauncher;
     private ActivityResultLauncher<Intent> editTaskLauncher;
+    private ActivityResultLauncher<Intent> preferencesLauncher;
     private DatabaseHandler db = new DatabaseHandler(this);
     private boolean sortAscending = true;
+    private boolean hideCompleted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,7 +67,9 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
         LinearLayoutManager lm = new LinearLayoutManager(this);
         rv.setLayoutManager(lm);
 
-        tasks = db.getAllTasks(sortAscending);
+        hideCompleted = getSharedPreferences("prefs", MODE_PRIVATE).getBoolean("hide_completed", false);
+
+        updateTasks(db.getAllTasks(sortAscending));
 
         adapter = new TasksAdapter(tasks, this);
         rv.setAdapter(adapter);
@@ -72,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
         EditText searchInput = findViewById(R.id.search_input);
         Button searchButton = findViewById(R.id.button_search);
         ImageButton sortButton = findViewById(R.id.button_sort);
+        ImageButton preferencesButton = findViewById(R.id.preferences_button);
 
         sortButton.setOnClickListener(v -> {
             sortAscending = !sortAscending;
@@ -122,13 +129,32 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                         adapter.notifyDataSetChanged();
                     }
                 });
+
+        preferencesLauncher = registerForActivityResult(new StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK || result.getResultCode() == RESULT_CANCELED) {
+                        hideCompleted = getSharedPreferences("prefs", MODE_PRIVATE).getBoolean("hide_completed", false);
+                        updateTasks(db.getAllTasks(sortAscending));
+                        adapter.notifyDataSetChanged();
+                    }
+                });
+
+        preferencesButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, PreferencesActivity.class);
+            preferencesLauncher.launch(intent);
+        });
     }
 
     private void scheduleNotification(Task task) {
-        Duration delay = Duration.between(LocalDateTime.now(), LocalDateTime.now().plusSeconds(10));
+        int notificationTimeHours = getSharedPreferences("prefs", MODE_PRIVATE).getInt("notification_time", 1);
+        if (task.getDueDate().minusHours(notificationTimeHours).isBefore(LocalDateTime.now())) {
+            return;
+        }
+
+        Duration duration = Duration.between(LocalDateTime.now(), task.getDueDate().minusHours(notificationTimeHours));
 
         OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(OneTimeScheduleWorker.class)
-                .setInitialDelay(delay.toMillis(), TimeUnit.MILLISECONDS)
+                .setInitialDelay(duration.toMillis(), TimeUnit.MILLISECONDS)
                 .setInputData(new Data.Builder()
                         .putString("task_title", task.getTitle())
                         .putString("task_description", task.getDescription())
@@ -148,16 +174,21 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
         String query = searchInput.getText().toString();
         if (query.equals("")) {
             updateTasks(db.getAllTasks(sortAscending));
-            adapter.notifyDataSetChanged();
         } else {
             updateTasks(db.getTasksByTitle(query, sortAscending));
-            adapter.notifyDataSetChanged();
         }
+        adapter.notifyDataSetChanged();
     }
 
     private void updateTasks(List<Task> tempTasks) {
         tasks.clear();
-        tasks.addAll(tempTasks);
+        if (hideCompleted) {
+            tasks.addAll(tempTasks.stream()
+                    .filter(t -> !t.isDone())
+                    .collect(Collectors.toList()));
+        } else {
+            tasks.addAll(tempTasks);
+        }
     }
 
     @Override
