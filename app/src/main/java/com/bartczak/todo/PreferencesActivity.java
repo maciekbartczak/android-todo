@@ -6,11 +6,11 @@ import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
-import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageButton;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -28,8 +28,14 @@ public class PreferencesActivity extends AppCompatActivity {
 
         EditText notificationTime = findViewById(R.id.notification_time_input);
         CheckBox hideCompleted = findViewById(R.id.hide_completed_checkbox);
+        EditText filterCategory = findViewById(R.id.category_input);
+        ImageButton clearCategory = findViewById(R.id.clear_category_button);
 
         int notificationTimeHours = getSharedPreferences("prefs", MODE_PRIVATE).getInt("notification_time", 1);
+        int filterCategoryId = getSharedPreferences("prefs", MODE_PRIVATE).getInt("filter_category", -1);
+        if (filterCategoryId != -1) {
+            filterCategory.setText(db.getCategoryById(filterCategoryId).getName());
+        }
 
         notificationTime.setText(createTimeString(notificationTimeHours));
 
@@ -62,10 +68,40 @@ public class PreferencesActivity extends AppCompatActivity {
                     .putBoolean("hide_completed", hideCompleted.isChecked())
                     .apply();
         });
+
+        filterCategory.setOnClickListener(v -> {
+            final List<Category> categories = db.getAllCategories();
+            final String[] options = categories.stream()
+                    .map(Category::getName)
+                    .toArray(String[]::new);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Choose category");
+            builder.setItems(options, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    filterCategory.setText(String.valueOf(options[i]));
+                    getSharedPreferences("prefs", MODE_PRIVATE)
+                            .edit()
+                            .putInt("filter_category", categories.get(i).getId())
+                            .apply();
+                }
+            });
+
+            builder.show();
+        });
+
+        clearCategory.setOnClickListener(v -> {
+            filterCategory.setText("");
+            getSharedPreferences("prefs", MODE_PRIVATE)
+                    .edit()
+                    .putInt("filter_category", -1)
+                    .apply();
+        });
     }
 
     private void rescheduleNotifications() {
-        List<Task> tasks = db.getAllTasks(true);
+        List<Task> tasks = db.getAllTasks(true, -1);
         WorkManager.getInstance(this).cancelAllWork();
 
         for (Task task : tasks) {

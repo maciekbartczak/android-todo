@@ -15,6 +15,7 @@ public class Task implements Serializable {
     private Boolean done;
     private Boolean notificationEnabled;
     private Boolean notificationScheduled;
+    private int categoryId;
 
     public int getId() {
         return id;
@@ -94,5 +95,13 @@ public class Task implements Serializable {
 
     public void setNotificationScheduled(Boolean notificationScheduled) {
         this.notificationScheduled = notificationScheduled;
+    }
+
+    public int getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(int categoryId) {
+        this.categoryId = categoryId;
     }
 }

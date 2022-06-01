@@ -3,6 +3,7 @@ package com.bartczak.todo;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.ContentResolver;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -16,6 +17,7 @@ import android.widget.ImageButton;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
@@ -28,6 +30,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -36,6 +39,8 @@ public class NewTaskActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<Intent> filePickerLauncher;
     private Path attachmentPath;
+    private DatabaseHandler db = new DatabaseHandler(this);
+    private int categoryId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,8 +56,8 @@ public class NewTaskActivity extends AppCompatActivity {
         CheckBox notify = findViewById(R.id.new_task_notify);
         Button save = findViewById(R.id.save_button);
         ImageButton deleteAttachment = findViewById(R.id.delete_attachment_button);
-
-
+        EditText categoryName = findViewById(R.id.category_input);
+        ImageButton newCategory = findViewById(R.id.clear_category_button);
 
         Calendar calendar = Calendar.getInstance();
         DatePickerDialog.OnDateSetListener date = (view, year, month, dayOfMonth) -> {
@@ -130,6 +135,52 @@ public class NewTaskActivity extends AppCompatActivity {
             attachmentPath = null;
         });
 
+        categoryName.setOnClickListener(v -> {
+            final List<Category> categories = db.getAllCategories();
+            final String[] options = categories.stream()
+                    .map(Category::getName)
+                    .toArray(String[]::new);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Choose category");
+            builder.setItems(options, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    categoryName.setText(String.valueOf(options[i]));
+                    categoryId = categories.get(i).getId();
+                }
+            });
+
+            builder.show();
+        });
+
+        newCategory.setOnClickListener(v -> {
+            final EditText input = new EditText(this);
+            input.setHint("Category name");
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Add category");
+            builder.setView(input);
+            builder.setPositiveButton("Add", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    String name = input.getText().toString();
+                    if (name.isEmpty()) {
+                        return;
+                    }
+                    Category category = new Category();
+                    category.setName(name);
+
+                    db.addCategory(category);
+
+                    categoryName.setText(name);
+                    categoryId = category.getId();
+                }
+            });
+
+            builder.show();
+        });
+
         save.setOnClickListener(view -> {
             if (!validateFields(title, description, dueDate, dueTime)) {
                 return;
@@ -148,6 +199,7 @@ public class NewTaskActivity extends AppCompatActivity {
                 if (done.isChecked()) {
                     savedTask.setDoneAt(LocalDateTime.now());
                 }
+                savedTask.setCategoryId(savedTask.getCategoryId());
 
                 Intent intent = new Intent();
                 intent.putExtra("task", savedTask);
@@ -166,6 +218,7 @@ public class NewTaskActivity extends AppCompatActivity {
                     task.setDoneAt(LocalDateTime.now());
                 }
                 task.setNotificationEnabled(notify.isChecked());
+                task.setCategoryId(categoryId);
 
                 Intent intent = new Intent();
                 intent.putExtra("task", task);

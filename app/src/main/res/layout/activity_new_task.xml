@@ -19,7 +19,6 @@
         app:layout_constraintTop_toTopOf="parent">
 
 
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -45,9 +44,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:clickable="true"
-                    android:focusable="false"
                     android:editable="false"
                     android:ems="10"
+                    android:focusable="false"
                     android:hint="@string/due_date" />
 
                 <EditText
@@ -55,9 +54,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:clickable="true"
-                    android:focusable="false"
                     android:editable="false"
                     android:ems="10"
+                    android:focusable="false"
                     android:hint="@string/due_time" />
             </LinearLayout>
 
@@ -110,6 +109,47 @@
                 android:ems="10"
                 android:hint="@string/description"
                 android:inputType="textPersonName" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/textView8"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_weight="1"
+                android:text="@string/category"
+                android:textSize="20sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+
+                <EditText
+                    android:id="@+id/category_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:editable="false"
+                    android:ems="10"
+                    android:focusable="false"
+                    android:inputType="textPersonName" />
+
+                <ImageButton
+                    android:id="@+id/clear_category_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="5"
+                    app:srcCompat="@android:drawable/ic_menu_add" />
+            </LinearLayout>
+
         </LinearLayout>
 
         <LinearLayout

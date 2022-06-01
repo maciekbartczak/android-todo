@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
     private DatabaseHandler db = new DatabaseHandler(this);
     private boolean sortAscending = true;
     private boolean hideCompleted = false;
+    private int filterCategory = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,8 +69,9 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
         rv.setLayoutManager(lm);
 
         hideCompleted = getSharedPreferences("prefs", MODE_PRIVATE).getBoolean("hide_completed", false);
+        filterCategory = getSharedPreferences("prefs", MODE_PRIVATE).getInt("filter_category", -1);
 
-        updateTasks(db.getAllTasks(sortAscending));
+        updateTasks(db.getAllTasks(sortAscending, filterCategory));
 
         adapter = new TasksAdapter(tasks, this);
         rv.setAdapter(adapter);
@@ -84,7 +86,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
             sortAscending = !sortAscending;
             sortButton.setImageResource(sortAscending ? android.R.drawable.arrow_down_float : android.R.drawable.arrow_up_float);
             if (searchInput.getText().toString().isEmpty()) {
-                updateTasks(db.getAllTasks(sortAscending));
+                updateTasks(db.getAllTasks(sortAscending, filterCategory));
                 adapter.notifyDataSetChanged();
             } else {
                 searchTasks(searchInput);
@@ -105,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                             newTask.setNotificationScheduled(false);
                         }
                         db.addTask(newTask);
-                        updateTasks(db.getAllTasks(sortAscending));
+                        updateTasks(db.getAllTasks(sortAscending, filterCategory));
                         adapter.notifyDataSetChanged();
                     }
                 });
@@ -125,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                             cancelNotification(task);
                         }
                         db.updateTask(task);
-                        updateTasks(db.getAllTasks(sortAscending));
+                        updateTasks(db.getAllTasks(sortAscending, filterCategory));
                         adapter.notifyDataSetChanged();
                     }
                 });
@@ -134,7 +136,8 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                 result -> {
                     if (result.getResultCode() == RESULT_OK || result.getResultCode() == RESULT_CANCELED) {
                         hideCompleted = getSharedPreferences("prefs", MODE_PRIVATE).getBoolean("hide_completed", false);
-                        updateTasks(db.getAllTasks(sortAscending));
+                        filterCategory = getSharedPreferences("prefs", MODE_PRIVATE).getInt("filter_category", -1);
+                        updateTasks(db.getAllTasks(sortAscending, filterCategory));
                         adapter.notifyDataSetChanged();
                     }
                 });
@@ -173,9 +176,9 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
     private void searchTasks(EditText searchInput) {
         String query = searchInput.getText().toString();
         if (query.equals("")) {
-            updateTasks(db.getAllTasks(sortAscending));
+            updateTasks(db.getAllTasks(sortAscending, filterCategory));
         } else {
-            updateTasks(db.getTasksByTitle(query, sortAscending));
+            updateTasks(db.getTasksByTitle(query, sortAscending, filterCategory));
         }
         adapter.notifyDataSetChanged();
     }

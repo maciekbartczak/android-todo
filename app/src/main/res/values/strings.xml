@@ -16,4 +16,6 @@
     <string name="default_notification_channel_name">todoChannel</string>
     <string name="notification_before">Notification time</string>
     <string name="hide_completed">Hide completed</string>
+    <string name="filter_by_category">Filter by category</string>
+    <string name="category">Category</string>
 </resources>
