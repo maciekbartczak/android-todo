@@ -208,6 +208,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                     cancelNotification(tasks.get(position));
                 }
                 db.updateTask(tasks.get(position));
+                updateTasks(db.getAllTasks(sortAscending, filterCategory));
                 break;
             case R.id.delete_button:
                 if (tasks.get(position).getAttachmentPath() != null) {

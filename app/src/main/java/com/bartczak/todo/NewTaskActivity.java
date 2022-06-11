@@ -143,6 +143,12 @@ public class NewTaskActivity extends AppCompatActivity {
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("Choose category");
+
+            builder.setNegativeButton("Clear", (dialog, which) -> {
+                categoryId = -1;
+                categoryName.setText("");
+            });
+
             builder.setItems(options, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
