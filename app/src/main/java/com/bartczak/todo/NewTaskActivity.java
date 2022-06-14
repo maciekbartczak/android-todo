@@ -39,7 +39,7 @@ public class NewTaskActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<Intent> filePickerLauncher;
     private Path attachmentPath;
-    private DatabaseHandler db = new DatabaseHandler(this);
+    private final DatabaseHandler db = new DatabaseHandler(this);
     private int categoryId = -1;
 
     @Override
@@ -100,11 +100,18 @@ public class NewTaskActivity extends AppCompatActivity {
             done.setChecked(savedTask.isDone());
             notify.setChecked(savedTask.isNotificationEnabled());
 
+            Category category = db.getCategoryById(savedTask.getCategoryId());
+            if (category != null) {
+                categoryName.setText(category.getName());
+            }
+
             calendar.set(Calendar.YEAR, localDueDate.getYear());
             calendar.set(Calendar.MONTH, localDueDate.getMonthValue() - 1);
             calendar.set(Calendar.DAY_OF_MONTH, localDueDate.getDayOfMonth());
             calendar.set(Calendar.HOUR_OF_DAY, localDueDate.getHour());
             calendar.set(Calendar.MINUTE, localDueDate.getMinute());
+
+            categoryId = savedTask.getCategoryId();
         }
 
         filePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
@@ -205,7 +212,7 @@ public class NewTaskActivity extends AppCompatActivity {
                 if (done.isChecked()) {
                     savedTask.setDoneAt(LocalDateTime.now());
                 }
-                savedTask.setCategoryId(savedTask.getCategoryId());
+                savedTask.setCategoryId(categoryId);
 
                 Intent intent = new Intent();
                 intent.putExtra("task", savedTask);

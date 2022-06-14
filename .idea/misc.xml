@@ -5,6 +5,8 @@
       <map>
         <entry key="../../../../layout/custom_preview.xml" value="0.39166666666666666" />
         <entry key="app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.141" />
+        <entry key="app/src/main/res/layout-land/activity_new_task.xml" value="0.33" />
+        <entry key="app/src/main/res/layout-sw600dp/activity_new_task.xml" value="0.23941256830601093" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.33" />
         <entry key="app/src/main/res/layout/activity_new_task.xml" value="0.33" />
         <entry key="app/src/main/res/layout/activity_preferences.xml" value="0.32608695652173914" />
