@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
     private boolean sortAscending = true;
     private boolean hideCompleted = false;
     private int filterCategory = -1;
+    private EditText searchInput;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,10 +78,19 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
         rv.setAdapter(adapter);
 
         FloatingActionButton addTask = findViewById(R.id.button_add);
-        EditText searchInput = findViewById(R.id.search_input);
+        searchInput = findViewById(R.id.search_input);
         Button searchButton = findViewById(R.id.button_search);
         ImageButton sortButton = findViewById(R.id.button_sort);
         ImageButton preferencesButton = findViewById(R.id.preferences_button);
+
+        String notificationTaskTitle = "";
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            notificationTaskTitle = extras.getString("task_title");
+            searchInput.setText(notificationTaskTitle);
+            searchTasks(searchInput);
+        }
+
 
         sortButton.setOnClickListener(v -> {
             sortAscending = !sortAscending;
@@ -137,7 +147,12 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                     if (result.getResultCode() == RESULT_OK || result.getResultCode() == RESULT_CANCELED) {
                         hideCompleted = getSharedPreferences("prefs", MODE_PRIVATE).getBoolean("hide_completed", false);
                         filterCategory = getSharedPreferences("prefs", MODE_PRIVATE).getInt("filter_category", -1);
-                        updateTasks(db.getAllTasks(sortAscending, filterCategory));
+                        if (searchInput.getText().toString().isEmpty()) {
+                            updateTasks(db.getAllTasks(sortAscending, filterCategory));
+                            adapter.notifyDataSetChanged();
+                        } else {
+                            searchTasks(searchInput);
+                        }
                         adapter.notifyDataSetChanged();
                     }
                 });
@@ -154,7 +169,8 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
             return;
         }
 
-        Duration duration = Duration.between(LocalDateTime.now(), task.getDueDate().minusHours(notificationTimeHours));
+//        Duration duration = Duration.between(LocalDateTime.now(), task.getDueDate().minusHours(notificationTimeHours));
+        Duration duration = Duration.between(LocalDateTime.now(), LocalDateTime.now().plusSeconds(10));
 
         OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(OneTimeScheduleWorker.class)
                 .setInitialDelay(duration.toMillis(), TimeUnit.MILLISECONDS)
@@ -208,7 +224,11 @@ public class MainActivity extends AppCompatActivity implements TasksViewClickLis
                     cancelNotification(tasks.get(position));
                 }
                 db.updateTask(tasks.get(position));
-                updateTasks(db.getAllTasks(sortAscending, filterCategory));
+                if (searchInput.getText().toString().isEmpty()) {
+                    updateTasks(db.getAllTasks(sortAscending, filterCategory));
+                } else {
+                    searchTasks(searchInput);
+                }
                 break;
             case R.id.delete_button:
                 if (tasks.get(position).getAttachmentPath() != null) {

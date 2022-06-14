@@ -8,6 +8,7 @@ import androidx.work.WorkManager;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -30,6 +31,7 @@ public class PreferencesActivity extends AppCompatActivity {
         CheckBox hideCompleted = findViewById(R.id.hide_completed_checkbox);
         EditText filterCategory = findViewById(R.id.category_input);
         ImageButton clearCategory = findViewById(R.id.clear_category_button);
+        Button deleteCategory = findViewById(R.id.delete_category_button);
 
         int notificationTimeHours = getSharedPreferences("prefs", MODE_PRIVATE).getInt("notification_time", 1);
         int filterCategoryId = getSharedPreferences("prefs", MODE_PRIVATE).getInt("filter_category", -1);
@@ -97,6 +99,29 @@ public class PreferencesActivity extends AppCompatActivity {
                     .edit()
                     .putInt("filter_category", -1)
                     .apply();
+        });
+
+        deleteCategory.setOnClickListener(v -> {
+            final List<Category> categories = db.getAllCategories();
+            final String[] options = categories.stream()
+                    .map(Category::getName)
+                    .toArray(String[]::new);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Choose category to delete");
+            builder.setItems(options, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    db.deleteCategory(categories.get(i).getId());
+                    filterCategory.setText("");
+                    getSharedPreferences("prefs", MODE_PRIVATE)
+                            .edit()
+                            .putInt("filter_category", -1)
+                            .apply();
+                }
+            });
+
+            builder.show();
         });
     }
 

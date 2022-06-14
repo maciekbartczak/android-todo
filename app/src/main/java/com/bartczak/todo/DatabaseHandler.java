@@ -215,20 +215,10 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         return null;
     }
 
-    public Category getCategoryByName(String name) {
-        final String SELECT_QUERY = "SELECT * FROM " + TABLE_CATEGORIES + " WHERE " + KEY_CATEGORY_NAME + " = '" + name + "'";
-
+    public void deleteCategory(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.rawQuery(SELECT_QUERY, null);
-
-        if (cursor.moveToFirst()) {
-            return createCategoryFromCursor(cursor);
-        }
-
-        cursor.close();
+        db.delete(TABLE_CATEGORIES, KEY_CATEGORY_ID + " = ?", new String[] { String.valueOf(id) });
         db.close();
-
-        return null;
     }
 
     private Task createTaskFromCursor(Cursor cursor) {

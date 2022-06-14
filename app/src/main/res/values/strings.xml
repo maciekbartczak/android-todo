@@ -18,4 +18,5 @@
     <string name="hide_completed">Hide completed</string>
     <string name="filter_by_category">Filter by category</string>
     <string name="category">Category</string>
+    <string name="delete_category">Delete category</string>
 </resources>
